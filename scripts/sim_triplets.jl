@@ -42,24 +42,20 @@ using Random
 #   data["total_spikes"]
 # ==============================================================================
 
-RULE = 'T'      # plasticity rule for E->E synapses: 
-                # T = TEST
+RULE = 'H'      # plasticity rule for E->E synapses: 
                 # 'H' = Hebbian (PairSTDP). Change it to:
                 # 'A' = anti-Hebbian (PairSTDP with swapped potentiation/depression),
                 # 'S' = symmetric (SymmetricSTDP). Also used in output file naming. 
                 # see lines 130-150 for how to change the plasticity rule in the code.
 
-@assert RULE in ('H', 'A', 'S', 'T') "RULE must be one of 'H', 'A', 'S', or 'T'" 
+@assert RULE in ('H', 'A', 'S') "RULE must be one of 'H', 'A', 'S'" 
 
 # ------------------------------------------------------------------------------
 # Parameter grid definition
 # ------------------------------------------------------------------------------
 # theta/gamma ranges depend on the plasticity rule: 'H' explores a broad range,
 # while 'A' and 'S' explore a narrow range close to 1 (symmetric/balanced regime).
-if RULE == 'T'
-	const theta_range = 1.0
-    const gamma_range = 1.0
-elseif RULE == 'H'
+if RULE == 'H'
     const theta_range = 0.1:0.1:2.5   # depression/potentiation ratio parameter, 25 values
     const gamma_range = 0.4:0.1:2.0   # ratio of STDP time constants (tau_minus/tau_plus), 17 values
 else # RULE in ('A', 'S')
@@ -67,11 +63,7 @@ else # RULE in ('A', 'S')
     const gamma_range = 0.8:0.05:1.2  # ratio of STDP time constants (tau_minus/tau_plus), 9 values
 end
 
-if RULE == 'T'
-    const n_trials = 1               # number of repeated trials per (theta, gamma) pair
-else
-    const n_trials = 10               # number of repeated trials per (theta, gamma) pair
-end
+const n_trials = 10               # number of repeated trials per (theta, gamma) pair
 
 # Full grid of (theta, gamma, trial_index) tuples, one entry per simulation to run
 const grid_params = [(t, g, tr) for t in theta_range, g in gamma_range, tr in 1:n_trials]
@@ -356,13 +348,8 @@ const nthreads = Threads.nthreads()
 # Thread-safe counter (atomic) used to track how many simulations remain
 mutable struct Atomic{T}; @atomic x::T; end
 
-if RULE == 'T'
-    const nspikes = 1000      # number of spikes per simulation (defines its duration)
-    const delta_t_rates = 1.0     # bin size (s) for instantaneous
-else
-    const nspikes = 10_000_000      # number of spikes per simulation (defines its duration)
-    const delta_t_rates = 250.0     # bin size (s) for instantaneous rate computation
-end
+const nspikes = 10_000_000      # number of spikes per simulation (defines its duration)
+const delta_t_rates = 250.0     # bin size (s) for instantaneous rate computation
 
 """
     time_me_please()
