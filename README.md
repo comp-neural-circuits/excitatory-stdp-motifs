@@ -32,8 +32,6 @@ Please refer to its repository for detailed documentation.
 Clone or download this repository, then open a Julia session in the repository directory.
 Make sure you are in the right folder: it must contain the files `Project.toml` and `Manifest.toml`.
 
-1. Start Julia: `julia`
-
 > ⚠️ **Tested with Julia 1.9.** The simulations and the `Manifest.toml`
 > in this repository were generated with Julia 1.9 and the package versions
 > pinned in that file.
@@ -48,9 +46,10 @@ install and use this exact version with:
 
 ```bash
 juliaup add 1.9
-julia +1.9 
 ```
 
+
+1. Start Julia: `julia +1.9` or `julia`,s if you prefer to use your current Julia version.
 2. Enter the package mode by pressing `]`
 3. Activate the environment of the current folder: `activate .`
 4. Install the packages: `instantiate`
