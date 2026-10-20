@@ -49,7 +49,7 @@ juliaup add 1.9
 ```
 
 
-1. Start Julia: `julia +1.9` or `julia`,s if you prefer to use your current Julia version.
+1. Start Julia: `julia +1.9` or `julia`, if you prefer to use your current Julia version.
 2. Enter the package mode by pressing `]`
 3. Activate the environment of the current folder: `activate .`
 4. Install the packages: `instantiate`
