@@ -20,11 +20,10 @@ using Random
 # ==============================================================================
 # SCRIPT DESCRIPTION
 # ==============================================================================
-
 # This script runs a parameter sweep over a recurrent spiking network (Hawkes process model)
 # with 3 excitatory and 3 inhibitory neurons. 
 # A single Hebbian STDP plasticity rule (RULE = 'H', 'A', 'S') on E->E synapses, 
-# and Vogels' inhibitory plasticity rule on I->E synapses.
+# and a homeostatic inhibitory plasticity rule on I->E synapses based on Vogels et al. (2011).
 #
 # All excitatory neurons share the same target rate `he` (homogeneous
 # population), and are recurrently connected. 
@@ -77,7 +76,7 @@ Run a single simulation of the recurrent E-I network for a given pair of
 plasticity parameters `(theta_val, gamma_val)`, and return two dictionaries:
 
 - `dict_tmp`   : full results (weights over time, spike trains, rates, etc.)
-- `only_params`: lightweight dictionary with just the simulation metadata/parameters
+- `only_params`: lightweight dictionary with just the simulation parameters
 
 Arguments:
 - `cnt`          : integer used both as the RNG seed and as a simulation identifier
@@ -108,7 +107,7 @@ function mysim(cnt::Int64, total_spikes::Int64, Δt_rates::Float64, theta_val::F
 
     # Weight bounds for each connection type (E->E, E->I, I->E, I->I)
     w_min, w_max_ee, w_max_ei, w_max_ie, w_max_ii = 1E-5, 0.5, 50.0, 2.0, 0.0
-    w_inh_ei = 5.0   # initial (fixed) diagonal E->I inhibitory weight
+    w_inh_ei = 5.0   
 
     # --------------------------------------------------------------------
     # Build the initial weight matrix w_mat (n x n), block by block.
@@ -116,8 +115,8 @@ function mysim(cnt::Int64, total_spikes::Int64, Δt_rates::Float64, theta_val::F
     # --------------------------------------------------------------------
     w_mat = zeros(n, n)
     w_mat[idxe, idxe] .= w_min .+ w_max_ee .* rand(ne, ne)                      # E->E: random initial weights
-    w_mat[idxe, idxi] .= -Matrix(Diagonal(fill(w_inh_ei, ne, ni)))              # E->I: fixed diagonal inhibitory weights (negative sign)
-    w_mat[idxi, idxe] .= Matrix(Diagonal(fill(w_max_ie, ni, ne)))               # I->E: fixed diagonal excitatory weights
+    w_mat[idxe, idxi] .= -Matrix(Diagonal(fill(w_inh_ei, ne, ni)))              # I->E: fixed diagonal inhibitory weights (negative sign)
+    w_mat[idxi, idxe] .= Matrix(Diagonal(fill(w_max_ie, ni, ne)))               # E->I: fixed diagonal excitatory weights
     w_mat[idxi, idxi] .= -w_max_ii                                             # I->I: fixed inhibitory weights (here 0, since w_max_ii = 0)
     w_mat[diagind(w_mat)] .= 0.0                                               # no self-connections
     w_0 = copy(w_mat)   # keep a copy of the initial weight matrix for later saving
@@ -166,8 +165,8 @@ function mysim(cnt::Int64, total_spikes::Int64, Δt_rates::Float64, theta_val::F
     end
 
     # --------------------------------------------------------------------
-    # I->E plasticity: Vogels' inhibitory plasticity rule.
-    # Regulates E->I feedback so that excitatory neurons approach a target rate.
+    # I->E plasticity: homeostatic inhibitory plasticity rule based on Vogels et al. (2011)
+    # Excitatory neurons approach a target rate.
     # Note: amplitude `A` here is NOT divided by tau, hence the larger value.
     # --------------------------------------------------------------------
     plasticity_ei = let A = 5E-5,
@@ -179,8 +178,7 @@ function mysim(cnt::Int64, total_spikes::Int64, Δt_rates::Float64, theta_val::F
 
     # --------------------------------------------------------------------
     # Build the four synaptic connections (with exponential kernels).
-    # Only E->E and I->E carry a plasticity rule; I->E and I->I are static
-    # (note: I->E here is fixed/static too, only E->I is plastic via Vogels).
+    # Only E->E and I->E undergo a plasticity rule; E->I and I->I are static
     # --------------------------------------------------------------------
     connection_ee = H.ConnectionExpKernel(w_mat[idxe, idxe], trae, plasticity_ee)
     connection_ie = H.ConnectionExpKernel((w_mat[idxi, idxe]), trae)
@@ -253,8 +251,7 @@ function mysim(cnt::Int64, total_spikes::Int64, Δt_rates::Float64, theta_val::F
 
     Reassemble the four recorded weight sub-matrices into a single full
     n x n weight matrix, restoring the correct sign convention for the
-    inhibitory blocks (E->I and I->I are stored as positive magnitudes and
-    must be negated here).
+    inhibitory blocks.
     """
     function assemble_weight(wee::M, wie::M, wei::M, wii::M) where M<:AbstractMatrix
         w_mat = zeros(Float64, n, n)
