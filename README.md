@@ -55,15 +55,10 @@ julia +1.9
 3. Activate the environment of the current folder: `activate .`
 4. Install the packages: `instantiate`
 (if DrWatson is reported as missing, run `add DrWatson` first)   
-**If it fails to precompile** first `update`, then `instantiate`, while still in the package mode 
-
+**If it fails to precompile:**
+- **4a.** `update`
+- **4b.** `instantiate`
 5. Leave the package mode with Backspace, then exit Julia: `exit()`
-
-**If you see warnings like** *"The active manifest file has dependencies that
-were resolved with a different julia version"*, you are using a different
-Julia version from the one tested. To proceed anyway, you can regenerate the
-manifest (this may install different package versions):
-
 
 For exact reproducibility of the results, please use Julia 1.9 with the
 provided manifest.
