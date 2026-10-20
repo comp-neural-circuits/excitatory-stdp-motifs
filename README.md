@@ -1,6 +1,6 @@
 # Heterogeneous plasticity rules generate diverse structures in recurrent networks
 
-Code accompanying the manuscript:
+Code accompanying the manuscript
 
 **Cusseddu C., Festa D., Miehl C., and Gjorgjieva J. (2026).** *Heterogeneous plasticity rules generate diverse structures in recurrent networks.*
 
@@ -24,26 +24,37 @@ Please refer to its repository for detailed documentation.
 
 ## Requirements
 
-- Julia 1.9 or a compatible version
+- Julia 1.9 or a compatible version (https://julialang.org/downloads/)
 - The dependencies listed in `Project.toml`
 
-## Installation
+## Getting started
 
-Clone or download this repository, then open a Julia session in the repository directory and run:
+Clone or download this repository, then open a Julia session in the repository directory.
+Make sure you are in the right folder: it must contain the files `Project.toml` and `Manifest.toml`.
 
-```julia
-using Pkg
-Pkg.instantiate()
-```
-
-This installs the dependencies declared for the project.
+1. Start Julia: `julia`
+2. Enter the package mode by pressing `]`
+3. Activate the environment of the current folder: `activate .`
+4. Install the packages: `instantiate`
+   (if DrWatson is reported as missing, run `add DrWatson` first)
+5. Leave the package mode with Backspace, then exit Julia: `exit()`
 
 ## Running the simulations
 
-The scripts are located in the `scripts/` directory.
+The scripts are located in the `scripts/` directory. To check that it works, run `test_small.jl` as follows.
+
+From the repository folder, run:
+```bash
+julia --project=. --threads auto scripts/test_small.jl
+```
+
+If a `.jld2` file appears in `data/sims/`, the setup is working.
+
+To run the full simulation code, choose the plasticity rule with the `RULE`
+variable at the top of each script (see the comments inside the script), and run it. For example:
+
+```bash
+julia --project=. --threads auto scripts/sim_triplets.jl
+```
 
 **Important:** The full parameter sweep can require substantial computation. Run the short test first and do not launch the full sweep until you are ready.
-
-## Reproducibility
-
-The project environment is specified by `Project.toml` and `Manifest.toml`. Simulation outputs are generated locally.

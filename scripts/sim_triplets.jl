@@ -25,8 +25,7 @@ using Random
 # A single Hebbian STDP plasticity rule (RULE = 'H', 'A', 'S') on E->E synapses, 
 # and a homeostatic inhibitory plasticity rule on I->E synapses based on Vogels et al. (2011).
 #
-# All excitatory neurons share the same target rate `he` (homogeneous
-# population), and are recurrently connected. 
+# All excitatory neurons share the same target rate `he` and are recurrently connected. 
 # Each excitatory neuron is paired to a single inhibitory neuron. 
 #
 # For every combination of (theta, gamma) in the grid below, `n_trials`
@@ -38,14 +37,12 @@ using Random
 #   data = load("Hth1.00_ga1.00_tr1.jld2")
 #   data["result"]     # -> full results Dict
 #   data["mypars"]     # -> lightweight parameters Dict
-#   data["total_spikes"]
 # ==============================================================================
 
 RULE = 'H'      # plasticity rule for E->E synapses: 
                 # 'H' = Hebbian (PairSTDP). Change it to:
                 # 'A' = anti-Hebbian (PairSTDP with swapped potentiation/depression),
                 # 'S' = symmetric (SymmetricSTDP). Also used in output file naming. 
-                # see lines 130-150 for how to change the plasticity rule in the code.
 
 @assert RULE in ('H', 'A', 'S') "RULE must be one of 'H', 'A', 'S'" 
 
@@ -53,7 +50,7 @@ RULE = 'H'      # plasticity rule for E->E synapses:
 # Parameter grid definition
 # ------------------------------------------------------------------------------
 # theta/gamma ranges depend on the plasticity rule: 'H' explores a broad range,
-# while 'A' and 'S' explore a narrow range close to 1 (symmetric/balanced regime).
+# while 'A' and 'S' explore a more narrow range.
 if RULE == 'H'
     const theta_range = 0.1:0.1:2.5   # depression/potentiation ratio parameter, 25 values
     const gamma_range = 0.4:0.1:2.0   # ratio of STDP time constants (tau_minus/tau_plus), 17 values
@@ -68,7 +65,7 @@ const n_trials = 10               # number of repeated trials per (theta, gamma)
 const grid_params = [(t, g, tr) for t in theta_range, g in gamma_range, tr in 1:n_trials]
 const total_sims = length(grid_params)
 
-println("Launching ", total_sims, " new targeted simulations.")
+println("Launching ", total_sims, " new simulations.")
 
 """
     mysim(cnt, total_spikes, Δt_rates, theta_val, gamma_val)
@@ -95,19 +92,19 @@ function mysim(cnt::Int64, total_spikes::Int64, Δt_rates::Float64, theta_val::F
     # Network size and structure
     # --------------------------------------------------------------------
     A1 = 1E-5              # STDP learning rate scale
-    ne, ni = 3, 3           # number of excitatory / inhibitory neurons
+    ne, ni = 3, 3          # number of excitatory / inhibitory neurons
     n = ne + ni
     idxe, idxi = 1:ne, ne .+ (1:ni)   # index ranges for E and I populations within the full weight matrix
 
-    # Membrane/synaptic time constants and baseline external inputs
+    # Synaptic time constants and baseline external inputs
     τe, τi, he, hi = 10E-3, 10E-3, 20.0, 50.0
 
-    # STDP / Vogels rule time constants and target rate
+    # STDP rule time constants and target rate
     tauplus, tauminus, τvogels, target_post = 20E-3, 20E-3, 40E-3, 15.0
 
     # Weight bounds for each connection type (E->E, E->I, I->E, I->I)
     w_min, w_max_ee, w_max_ei, w_max_ie, w_max_ii = 1E-5, 0.5, 50.0, 2.0, 0.0
-    w_inh_ei = 5.0   
+    w_inh_ei = 5.0
 
     # --------------------------------------------------------------------
     # Build the initial weight matrix w_mat (n x n), block by block.
@@ -123,13 +120,13 @@ function mysim(cnt::Int64, total_spikes::Int64, Δt_rates::Float64, theta_val::F
 
     # --------------------------------------------------------------------
     # Build the vector of external input rates `h_vec`.
-    # All excitatory neurons share the same target rate `he` (homogeneous
-    # population), and all inhibitory neurons share `hi`.
+    # All excitatory neurons share the same target rate `he`,
+    # and all inhibitory neurons share `hi`.
     # --------------------------------------------------------------------
     h_vec = vcat(fill(he, ne), fill(hi, ni))
 
     # --------------------------------------------------------------------
-    # Population states and synaptic traces.
+    # Population states and activity traces.
     # A "trace" is required alongside each population state to support the
     # exponential-kernel connections used below.
     # --------------------------------------------------------------------
@@ -166,8 +163,6 @@ function mysim(cnt::Int64, total_spikes::Int64, Δt_rates::Float64, theta_val::F
 
     # --------------------------------------------------------------------
     # I->E plasticity: homeostatic inhibitory plasticity rule based on Vogels et al. (2011)
-    # Excitatory neurons approach a target rate.
-    # Note: amplitude `A` here is NOT divided by tau, hence the larger value.
     # --------------------------------------------------------------------
     plasticity_ei = let A = 5E-5,
         tau = τvogels,
@@ -186,7 +181,7 @@ function mysim(cnt::Int64, total_spikes::Int64, Δt_rates::Float64, theta_val::F
     connection_ii = H.ConnectionExpKernel(abs.(w_mat[idxi, idxi]), trai)
 
     # Assemble the two populations, each receiving recurrent input from itself
-    # and from the other population.
+    # and from the other population, beyond the baseline external input `h_vec`.
     pop_e = H.PopulationExpKernel(pse, h_vec[idxe], (connection_ee, pse), (connection_ei, psi))
     pop_i = H.PopulationExpKernel(psi, h_vec[idxi], (connection_ie, pse), (connection_ii, psi))
 
@@ -219,6 +214,7 @@ function mysim(cnt::Int64, total_spikes::Int64, Δt_rates::Float64, theta_val::F
     Advance the network dynamics event-by-event (one spike per iteration) for
     `num_spikes` steps, starting from time `t_start`. Returns the final time.
     """
+    
     function run_simulation!(network, num_spikes; show_progress=true, t_start::Float64=0.0)
         t_now = t_start
         # H.reset!(network) # would clear spike trains etc. if a fresh restart were needed

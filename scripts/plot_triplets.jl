@@ -152,6 +152,7 @@ function load_results_table(rule::Char; sims_dir::String=datadir("sims", "rule_$
     isdir(sims_dir) || error("Directory not found: $sims_dir")
     files = filter(f -> endswith(f, ".jld2"), readdir(sims_dir; join=true))
     isempty(files) && error("No .jld2 files found in $sims_dir")
+    println("Found $(length(files)) simulation files.")
 
     rows = NamedTuple[]
     for f in files
@@ -334,9 +335,12 @@ end
 # motif_legend()
 # ==============================================================================
 mkpath(plotsdir())
+println("Loading simulation results...")
 df = load_results_table(rule)
 res = compute_motif_heatmap(df)
 plt = plot_motif_heatmap(res)
+println("Saving heatmap...")
 savefig(plt, plotsdir("motifs_avg_$rule.png"))
 export_results_xlsx(res, datadir("analysis", "motifs_$rule.xlsx"))
 motif_legend()
+println("Analysis complete.")
