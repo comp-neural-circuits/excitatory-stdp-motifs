@@ -56,8 +56,8 @@ julia +1.9
 4. Install the packages: `instantiate`
 (if DrWatson is reported as missing, run `add DrWatson` first)   
 **If it fails to precompile:**
-- **4a.** `update`
-- **4b.** `instantiate`
+- 4a. `update`
+- 4b. `instantiate`
 5. Leave the package mode with Backspace, then exit Julia: `exit()`
 
 For exact reproducibility of the results, please use Julia 1.9 with the
@@ -73,12 +73,11 @@ From the repository folder, run:
 ```bash
 julia +1.9 --threads auto scripts/test_small.jl
 ```
-or 
+or, if you prefer to use your current Julia version:
 
 ```bash
 julia --threads auto scripts/test_small.jl
 ```
-on your current Julia version.
 
 
 If a `.jld2` file appears in `data/sims/`, the setup is working.
@@ -89,10 +88,9 @@ variable at the top of each script (see the comments inside the script), and run
 ```bash
 julia +1.9 --threads auto scripts/sim_triplets.jl
 ```
-or 
+or, if you prefer to use your current Julia version:
 ```bash
 julia --threads auto scripts/sim_triplets.jl
 ```
-on your current Julia version.
 
 **Important:** The full parameter sweep can require substantial computation. Run the short test first and do not launch the full sweep until you are ready.
