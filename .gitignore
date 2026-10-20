@@ -1,0 +1,8 @@
+# macOS
+.DS_Store
+
+# Simulation outputs
+data/
+
+# Julia temporary files
+*.ji
