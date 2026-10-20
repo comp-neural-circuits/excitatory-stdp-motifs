@@ -33,11 +33,42 @@ Clone or download this repository, then open a Julia session in the repository d
 Make sure you are in the right folder: it must contain the files `Project.toml` and `Manifest.toml`.
 
 1. Start Julia: `julia`
+
+> ⚠️ **Tested with Julia 1.9.** The simulations and the `Manifest.toml`
+> in this repository were generated with Julia 1.9 and the package versions
+> pinned in that file.
+>
+> Other Julia versions (older or newer) are **not guaranteed to work**.
+> Package versions, the random number generator and numerical details may
+> differ, so results may not be identical to those in the paper, even with
+> the same random seeds.
+
+If you installed Julia with [juliaup](https://julialang.org/install/), you can
+install and use this exact version with:
+
+```bash
+juliaup add 1.9
+julia +1.9 
+```
+
 2. Enter the package mode by pressing `]`
 3. Activate the environment of the current folder: `activate .`
 4. Install the packages: `instantiate`
-   (if DrWatson is reported as missing, run `add DrWatson` first)
+(if DrWatson is reported as missing, run `add DrWatson` first)   
+**If it fails to precompile** first `update`, then `instantiate`, while still in the package mode 
+
 5. Leave the package mode with Backspace, then exit Julia: `exit()`
+
+**If you see warnings like** *"The active manifest file has dependencies that
+were resolved with a different julia version"*, you are using a different
+Julia version from the one tested. To proceed anyway, you can regenerate the
+manifest (this may install different package versions):
+
+
+For exact reproducibility of the results, please use Julia 1.9 with the
+provided manifest.
+
+
 
 ## Running the simulations
 
@@ -45,8 +76,15 @@ The scripts are located in the `scripts/` directory. To check that it works, run
 
 From the repository folder, run:
 ```bash
-julia --project=. --threads auto scripts/test_small.jl
+julia +1.9 --threads auto scripts/test_small.jl
 ```
+or 
+
+```bash
+julia --threads auto scripts/test_small.jl
+```
+on your current Julia version.
+
 
 If a `.jld2` file appears in `data/sims/`, the setup is working.
 
@@ -54,7 +92,12 @@ To run the full simulation code, choose the plasticity rule with the `RULE`
 variable at the top of each script (see the comments inside the script), and run it. For example:
 
 ```bash
-julia --project=. --threads auto scripts/sim_triplets.jl
+julia +1.9 --threads auto scripts/sim_triplets.jl
 ```
+or 
+```bash
+julia --threads auto scripts/sim_triplets.jl
+```
+on your current Julia version.
 
 **Important:** The full parameter sweep can require substantial computation. Run the short test first and do not launch the full sweep until you are ready.
