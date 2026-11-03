@@ -5,7 +5,7 @@ Code accompanying the manuscript
 **Cusseddu C., Festa D., Miehl C., and Gjorgjieva J. (2026).** *Heterogeneous plasticity rules generate diverse structures in recurrent networks.*
 
 - **Contact:** claudia.cusseddu@tum.de
-- **Preprint:** [bioRxiv](https://www.biorxiv.org/content/10.1101/123456789)
+- **Preprint:** [bioRxiv](https://doi.org/10.64898/2026.10.26.760407)
 
 ---
 
