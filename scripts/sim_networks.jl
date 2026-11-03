@@ -24,11 +24,10 @@ using Random
 # This script runs a parameter sweep over a recurrent spiking network (Hawkes process model)
 # with 75 excitatory and 25 inhibitory neurons. 
 # A single Hebbian STDP plasticity rule (RULE = 'H', 'A', 'S') on E->E synapses, 
-# and Vogels' inhibitory plasticity rule on I->E synapses.
+# and a homeostatic inhibitory plasticity rule on I->E synapses based on Vogels et al. (2011).
 #
-# All excitatory neurons share the same target rate `he` (homogeneous
-# population), and are recurrently connected. 
-# Each excitatory neuron is paired to a single inhibitory neuron. 
+# All excitatory neurons share the same input rate `he` 
+# All inhibitory neurons share the same input rate `hi` 
 #
 # For every combination of (theta, gamma) in the grid below, `n_trials`
 # independent repetitions are run (different random seeds), and results are
@@ -56,7 +55,7 @@ RULE = 'H'      # plasticity rule for E->E synapses: 'H' = Hebbian (PairSTDP). C
 # while 'A' and 'S' explore a narrow range close to 1 (symmetric/balanced regime).
 if RULE == 'H'
     const theta_range = [0.5, 0.9, 1.0, 1.5, 5.0] # depression/potentiation ratio parameter, 25 values
-    const gamma_range = [1.1, 1.25] #[0.8, 1.0, 1.1, 1.25]  # ratio of STDP time constants (tau_minus/tau_plus), 17 values
+    const gamma_range = [0.8, 1.0, 1.1, 1.25]  # ratio of STDP time constants (tau_minus/tau_plus), 17 values
 else # RULE in ('A', 'S')
     const theta_range = [0.9, 1.2]  # depression/potentiation ratio parameter, 41 values
     const gamma_range = [0.9, 2.0]  # ratio of STDP time constants (tau_minus/tau_plus), 9 values
@@ -98,15 +97,15 @@ function mysim(cnt::Int64, total_spikes::Int64, Δt_rates::Float64, theta_val::F
     n = ne + ni
     idxe, idxi = 1:ne, ne .+ (1:ni)   # index ranges for E and I populations within the full weight matrix
 
-    # Membrane/synaptic time constants and baseline external inputs
+    # Membrane/synaptic time constants and baseline external inputs [seconds, Hertz] 
     τe, τi, he, hi = 10E-3, 10E-3, 10.0, 10.0
 
-    # STDP / Vogels rule time constants and target rate
+    # STDP / Vogels rule time constants and target rate [seconds, Hertz] 
     tauplus, tauminus, τvogels, target_post = 20E-3, 20E-3, 40E-3, 5.0
 
-    # Weight bounds for each connection type (E->E, E->I, I->E, I->I)
+    # Weight bounds for each connection type (E->E, I->E, E->I, I->I)
     w_min, w_max_ee, w_max_ei, w_max_ie, w_max_ii = 1E-5, 1.0, 10.0, 2.0, 1.0
-    w_inh_ei = 5.0   # initial (fixed) diagonal E->I inhibitory weight
+    w_inh_ei = 5.0   # initial diagonal I->E inhibitory weight
 
     # --------------------------------------------------------------------
     # Build the initial weight matrix w_mat (n x n), block by block.
@@ -128,8 +127,8 @@ function mysim(cnt::Int64, total_spikes::Int64, Δt_rates::Float64, theta_val::F
 
     # --------------------------------------------------------------------
     # Build the vector of external input rates `h_vec`.
-    # All excitatory neurons share the same target rate `he` (homogeneous
-    # population), and all inhibitory neurons share `hi`.
+    # All excitatory neurons share the same input `he`
+    # and all inhibitory neurons share `hi`.
     # --------------------------------------------------------------------
     h_vec = vcat(fill(he, ne), fill(hi, ni))
 
@@ -141,14 +140,11 @@ function mysim(cnt::Int64, total_spikes::Int64, Δt_rates::Float64, theta_val::F
     pse, trae = H.population_state_exp_and_trace(ne, τe; label="population_e")
     psi, trai = H.population_state_exp_and_trace_inhibitory(ni, τi; label="population_i")
 
-    # --------------------------------------------------------------------
+   # --------------------------------------------------------------------
     # E->E plasticity rule, selected by the global `RULE`:
-    #   'H' (Hebbian)      : standard pair-based STDP, potentiation for pre->post
-    #                        order (τplus), depression for post->pre order (τminus).
-    #   'A' (anti-Hebbian) : same PairSTDP rule, but with potentiation/depression
-    #                        (and their time constants) swapped.
-    #   'S' (symmetric)    : SymmetricSTDP rule, same sign for both pre->post and
-    #                        post->pre pairings.
+    #   'H' (Hebbian)
+    #   'A' (anti-Hebbian)
+    #   'S' (symmetric)
     # In all three cases Aplus/Aminus/τminus are derived the same way from
     # A1, tauplus, and the theta/gamma parameters.
     # --------------------------------------------------------------------
@@ -170,9 +166,7 @@ function mysim(cnt::Int64, total_spikes::Int64, Δt_rates::Float64, theta_val::F
     end
 
     # --------------------------------------------------------------------
-    # I->E plasticity: Vogels' inhibitory plasticity rule.
-    # Regulates E->I feedback so that excitatory neurons approach a target rate.
-    # Note: amplitude `A` here is NOT divided by tau, hence the larger value.
+    # I->E plasticity: homeostatic inhibitory plasticity rule based on Vogels et al. (2011)
     # --------------------------------------------------------------------
     plasticity_ei = let A = 5E-5,
         tau = τvogels,
@@ -183,8 +177,7 @@ function mysim(cnt::Int64, total_spikes::Int64, Δt_rates::Float64, theta_val::F
 
     # --------------------------------------------------------------------
     # Build the four synaptic connections (with exponential kernels).
-    # Only E->E and I->E carry a plasticity rule; I->E and I->I are static
-    # (note: I->E here is fixed/static too, only E->I is plastic via Vogels).
+    # Only E->E and I->E undergo a plasticity rule; E->I and I->I are static
     # --------------------------------------------------------------------
     connection_ee = H.ConnectionExpKernel(w_mat[idxe, idxe], trae, plasticity_ee)
     connection_ie = H.ConnectionExpKernel((w_mat[idxi, idxe]), trae)
@@ -192,7 +185,7 @@ function mysim(cnt::Int64, total_spikes::Int64, Δt_rates::Float64, theta_val::F
     connection_ii = H.ConnectionExpKernel(abs.(w_mat[idxi, idxi]), trai)
 
     # Assemble the two populations, each receiving recurrent input from itself
-    # and from the other population.
+    # and from the other population, beyond the baseline external input `h_vec`.
     pop_e = H.PopulationExpKernel(pse, h_vec[idxe], (connection_ee, pse), (connection_ei, psi))
     pop_i = H.PopulationExpKernel(psi, h_vec[idxi], (connection_ie, pse), (connection_ii, psi))
 
@@ -333,7 +326,7 @@ function mysim(cnt::Int64, total_spikes::Int64, Δt_rates::Float64, theta_val::F
         "weights" => weights, "weights_times" => times_w
     )
 
-    # Lightweight dictionary with only the simulation parameters/metadata
+    # Lightweight dictionary with only the simulation parameters
     only_params = Dict(
         "myseed" => cnt, "A1" => A1, "theta1" => θ1, "gamma1" => γ1, "t_end" => t_end,
         "taus" => taus, "targetrate" => target_post, "he" => he, "hi" => hi
