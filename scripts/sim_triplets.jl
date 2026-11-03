@@ -4,7 +4,7 @@
 # authors: Claudia Cusseddu, Dylan Festa, Christoph Miehl, Julijana Gjorgjieva
 # affiliation: Technical University of Munich, Germany 
 # contact: claudia.cusseddu@tum.de
-# biorxiv preprint: https://www.biorxiv.org/content/10.1101/123456789 (2026)
+# biorxiv preprint: https://doi.org/10.64898/2026.10.26.760407 (2026)
 # =============================================================================
 using DrWatson
 @quickactivate
