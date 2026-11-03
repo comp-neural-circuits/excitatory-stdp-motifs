@@ -39,7 +39,6 @@ using Random
 #   data["result"]     # -> full results Dict
 #   data["mypars"]     # -> lightweight parameters Dict
 # ==============================================================================
-
 RULE = 'H'      # plasticity rule for E->E synapses: 
                 # 'H' = Hebbian (PairSTDP). Change it to:
                 # 'A' = anti-Hebbian (PairSTDP with swapped potentiation/depression),
@@ -216,7 +215,7 @@ function mysim(cnt::Int64, total_spikes::Int64, Δt_rates::Float64, theta_val::F
     function run_simulation!(network, num_spikes; show_progress=true, t_start::Float64=0.0)
         t_now = t_start
         # H.reset!(network) # would clear spike trains etc. if a fresh restart were needed
-        pr = Progress(n_spikes; enabled=show_progress)
+        pr = Progress(num_spikes; enabled=show_progress)
         for _ in 1:num_spikes
             t_now = H.dynamics_step!(t_now, network)
             ProgressMeter.next!(pr)
@@ -234,7 +233,7 @@ function mysim(cnt::Int64, total_spikes::Int64, Δt_rates::Float64, theta_val::F
     # ======================================================================
     # POST-PROCESSING: extract data from the recorders
     # ======================================================================
-    weights_contentee = H.get_content(rec_wee)
+    weights_content_ee = H.get_content(rec_wee)
     weights_content_ie = H.get_content(rec_wie)
     weights_content_ei = H.get_content(rec_wei)
     weights_content_ii = H.get_content(rec_wii)
@@ -255,16 +254,16 @@ function mysim(cnt::Int64, total_spikes::Int64, Δt_rates::Float64, theta_val::F
         w_mat[idxi, idxi] = -wii
         return w_mat
     end
-
-    times_w = weights_contentee.times
+  
+    times_w = weights_content_ee.times
     # Reconstruct the full weight matrix at every recorded time point
-    weights = let k = length(weights_contentee.weights)
-        map(i -> assemble_weight(weights_contentee.weights[i],
+    weights = let k = length(weights_content_ee.weights)
+        map(i -> assemble_weight(weights_content_ee.weights[i],
                                   weights_content_ie.weights[i],
                                   weights_content_ei.weights[i],
                                   weights_content_ii.weights[i]), 1:k)
     end
-
+  
     """
         get_spike_window(trains, t_start, t_end)
 
