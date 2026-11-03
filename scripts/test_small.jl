@@ -24,11 +24,11 @@ using Random
 # This script runs a parameter sweep over a recurrent spiking network (Hawkes process model)
 # with 3 excitatory and 3 inhibitory neurons. 
 # A single Hebbian STDP plasticity rule (RULE = 'H', 'A', 'S') on E->E synapses, 
-# and Vogels' inhibitory plasticity rule on I->E synapses.
+# and a homeostatic inhibitory plasticity rule on I->E synapses based on Vogels et al. (2011).
 #
-# All excitatory neurons share the same target rate `he` (homogeneous
-# population), and are recurrently connected. 
-# Each excitatory neuron is paired to a single inhibitory neuron. 
+# All excitatory neurons share the same input `he` and are recurrently connected. 
+# Each excitatory neuron is paired to a single inhibitory neuron.
+# All inhibitory neurons share the same input `hi` and are not connected with each other.
 #
 # For every combination of (theta, gamma) in the grid below, `n_trials`
 # independent repetitions are run (different random seeds), and results are
@@ -41,13 +41,12 @@ using Random
 #   data["mypars"]     # -> lightweight parameters Dict
 #   data["total_spikes"]
 # ==============================================================================
-
 RULE = "test"   # plasticity rule for E->E synapses: # this is just a test, with a Hebbian rule. 
                 # In general, use one of the following (see sim_triplets.jl for the full parameter sweep):
                 # 'H' = Hebbian (PairSTDP). Change it to:
                 # 'A' = anti-Hebbian (PairSTDP with swapped potentiation/depression),
                 # 'S' = symmetric (SymmetricSTDP). Also used in output file naming. 
-                # see lines 130-150 for how to change the plasticity rule in the code.
+                # see the block 'E->E plasticity rule' inside `mysim` for how the rule is selected.
 # ------------------------------------------------------------------------------
 # Parameter grid definition
 # ------------------------------------------------------------------------------
@@ -86,7 +85,7 @@ function mysim(cnt::Int64, total_spikes::Int64, Δt_rates::Float64, theta_val::F
     # Network size and structure
     # --------------------------------------------------------------------
     A1 = 1E-5              # STDP learning rate scale
-    ne, ni = 3, 3           # number of excitatory / inhibitory neurons
+    ne, ni = 3, 3           # number of excitatory and inhibitory neurons
     n = ne + ni
     idxe, idxi = 1:ne, ne .+ (1:ni)   # index ranges for E and I populations within the full weight matrix
 
@@ -157,7 +156,7 @@ function mysim(cnt::Int64, total_spikes::Int64, Δt_rates::Float64, theta_val::F
     end
 
     # --------------------------------------------------------------------
-    # I->E plasticity: Vogels' inhibitory plasticity rule.
+    # I->E plasticity: homeostatic inhibitory plasticity rule based on Vogels et al. (2011)
     # --------------------------------------------------------------------
     plasticity_ei = let A = 5E-5,
         tau = τvogels,
@@ -165,10 +164,9 @@ function mysim(cnt::Int64, total_spikes::Int64, Δt_rates::Float64, theta_val::F
         bounds = H.PlasticityBoundsLowHigh(w_min, w_max_ei)
         H.PlasticityInhibitory(tau, A, ne, ni; r_target=target_rate, plasticity_bounds=bounds)
     end
-
     # --------------------------------------------------------------------
     # Build the four synaptic connections (with exponential kernels).
-    # Only E->E and I->E follow a plasticity rule; I->E and I->I are static
+    # Only E->E and I->E undergo a plasticity rule; E->I and I->I are static
     # --------------------------------------------------------------------
     connection_ee = H.ConnectionExpKernel(w_mat[idxe, idxe], trae, plasticity_ee)
     connection_ie = H.ConnectionExpKernel((w_mat[idxi, idxe]), trae)
@@ -303,7 +301,7 @@ function mysim(cnt::Int64, total_spikes::Int64, Δt_rates::Float64, theta_val::F
     taus = Dict("tauplus" => tauplus, "tauminus" => tauminus, "taue" => τe, "taui" => τi, "tauvogels" => τvogels)
 
     # Mean off-diagonal weight, over the whole network and restricted to E->E only,
-    # tracked across all recorded time points (useful to check convergence/stability)
+    # tracked across all recorded time points
     mean_w_notdiag = [mean(W[Not(diagind(W))]) for W in weights]
     mean_w_ee_notdiag = [mean(W[idxe, idxe][Not(diagind(W[idxe, idxe]))]) for W in weights]
 
