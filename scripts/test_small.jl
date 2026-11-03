@@ -210,7 +210,7 @@ function mysim(cnt::Int64, total_spikes::Int64, Δt_rates::Float64, theta_val::F
     function run_simulation!(network, num_spikes; show_progress=true, t_start::Float64=0.0)
         t_now = t_start
         # H.reset!(network) # would clear spike trains etc. if a fresh restart were needed
-        pr = Progress(n_spikes; enabled=show_progress)
+        pr = Progress(num_spikes; enabled=show_progress)
         for _ in 1:num_spikes
             t_now = H.dynamics_step!(t_now, network)
             ProgressMeter.next!(pr)
