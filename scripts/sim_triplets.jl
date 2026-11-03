@@ -28,9 +28,9 @@ using Random
 # All excitatory neurons share the same target rate `he` and are recurrently connected. 
 # Each excitatory neuron is paired to a single inhibitory neuron. 
 #
-# For every combination of (theta, gamma) in the grid below, `n_trials`
-# independent repetitions are run (different random seeds), and results are
-# saved to individual .jld2 files.
+# For every combination of (theta, gamma) in the grid below, the code runs `n_trials`
+# independent repetitions (different random seeds), and saves the results 
+# to individual .jld2 files.
 #
 # To reload a result file later for analysis in Julia:
 #   using JLD2
@@ -42,7 +42,7 @@ using Random
 RULE = 'H'      # plasticity rule for E->E synapses: 
                 # 'H' = Hebbian (PairSTDP). Change it to:
                 # 'A' = anti-Hebbian (PairSTDP with swapped potentiation/depression),
-                # 'S' = symmetric (SymmetricSTDP). Also used in output file naming. 
+                # 'S' = symmetric (SymmetricSTDP). 
 
 @assert RULE in ('H', 'A', 'S') "RULE must be one of 'H', 'A', 'S'" 
 
@@ -92,17 +92,17 @@ function mysim(cnt::Int64, total_spikes::Int64, Δt_rates::Float64, theta_val::F
     # Network size and structure
     # --------------------------------------------------------------------
     A1 = 1E-5              # STDP learning rate scale
-    ne, ni = 3, 3          # number of excitatory / inhibitory neurons
+    ne, ni = 3, 3          # number of excitatory and inhibitory neurons
     n = ne + ni
     idxe, idxi = 1:ne, ne .+ (1:ni)   # index ranges for E and I populations within the full weight matrix
 
-    # Synaptic time constants and baseline external inputs
+    # Synaptic time constants and baseline external inputs [seconds, Hertz] 
     τe, τi, he, hi = 10E-3, 10E-3, 20.0, 50.0
 
-    # STDP rule time constants and target rate
+    # STDP rule time constants and target rate [seconds, Hertz] 
     tauplus, tauminus, τvogels, target_post = 20E-3, 20E-3, 40E-3, 15.0
 
-    # Weight bounds for each connection type (E->E, E->I, I->E, I->I)
+    # Weight bounds for each connection type (E->E, I->E, E->I, I->I)
     w_min, w_max_ee, w_max_ei, w_max_ie, w_max_ii = 1E-5, 0.5, 50.0, 2.0, 0.0
     w_inh_ei = 5.0
 
@@ -112,16 +112,16 @@ function mysim(cnt::Int64, total_spikes::Int64, Δt_rates::Float64, theta_val::F
     # --------------------------------------------------------------------
     w_mat = zeros(n, n)
     w_mat[idxe, idxe] .= w_min .+ w_max_ee .* rand(ne, ne)                      # E->E: random initial weights
-    w_mat[idxe, idxi] .= -Matrix(Diagonal(fill(w_inh_ei, ne, ni)))              # I->E: fixed diagonal inhibitory weights (negative sign)
+    w_mat[idxe, idxi] .= -Matrix(Diagonal(fill(w_inh_ei, ne, ni)))              # I->E: initial diagonal inhibitory weights (negative sign)
     w_mat[idxi, idxe] .= Matrix(Diagonal(fill(w_max_ie, ni, ne)))               # E->I: fixed diagonal excitatory weights
-    w_mat[idxi, idxi] .= -w_max_ii                                             # I->I: fixed inhibitory weights (here 0, since w_max_ii = 0)
+    w_mat[idxi, idxi] .= -w_max_ii                                             # I->I: fixed inhibitory weights (here 0)
     w_mat[diagind(w_mat)] .= 0.0                                               # no self-connections
     w_0 = copy(w_mat)   # keep a copy of the initial weight matrix for later saving
 
     # --------------------------------------------------------------------
     # Build the vector of external input rates `h_vec`.
-    # All excitatory neurons share the same target rate `he`,
-    # and all inhibitory neurons share `hi`.
+    # All excitatory neurons share the same input `he` (homogeneous
+    # population), and all inhibitory neurons share `hi`.
     # --------------------------------------------------------------------
     h_vec = vcat(fill(he, ne), fill(hi, ni))
 
@@ -135,12 +135,9 @@ function mysim(cnt::Int64, total_spikes::Int64, Δt_rates::Float64, theta_val::F
 
     # --------------------------------------------------------------------
     # E->E plasticity rule, selected by the global `RULE`:
-    #   'H' (Hebbian)      : standard pair-based STDP, potentiation for pre->post
-    #                        order (τplus), depression for post->pre order (τminus).
-    #   'A' (anti-Hebbian) : same PairSTDP rule, but with potentiation/depression
-    #                        (and their time constants) swapped.
-    #   'S' (symmetric)    : SymmetricSTDP rule, same sign for both pre->post and
-    #                        post->pre pairings.
+    #   'H' (Hebbian)
+    #   'A' (anti-Hebbian)
+    #   'S' (symmetric)
     # In all three cases Aplus/Aminus/τminus are derived the same way from
     # A1, tauplus, and the theta/gamma parameters.
     # --------------------------------------------------------------------
@@ -195,7 +192,7 @@ function mysim(cnt::Int64, total_spikes::Int64, Δt_rates::Float64, theta_val::F
 
     Δt_wrec = 250.0       # weight-recording interval (s)
     Tend_wrec = 10000.0   # expected simulation duration (s) used to size the weight recorder
-    # (this is just a guess for pre-allocation purposes; actual runtime is determined by n_spikes)
+    # (this is just a guess for pre-allocation purposes; actual runtime is determined by 'n_spikes')
 
     rec_wee = H.RecTheseWeights(connection_ee.weights, Δt_wrec, Tend_wrec)
     rec_wie = H.RecTheseWeights(connection_ie.weights, Δt_wrec, Tend_wrec)
@@ -322,7 +319,7 @@ function mysim(cnt::Int64, total_spikes::Int64, Δt_rates::Float64, theta_val::F
         "weights" => weights, "weights_times" => times_w
     )
 
-    # Lightweight dictionary with only the simulation parameters/metadata
+    # Lightweight dictionary with only the simulation parameters
     only_params = Dict(
         "myseed" => cnt, "A1" => A1, "theta1" => θ1, "gamma1" => γ1, "t_end" => t_end,
         "taus" => taus, "targetrate" => target_post, "he" => he, "hi" => hi
