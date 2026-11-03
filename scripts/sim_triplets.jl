@@ -25,8 +25,9 @@ using Random
 # A single Hebbian STDP plasticity rule (RULE = 'H', 'A', 'S') on E->E synapses, 
 # and a homeostatic inhibitory plasticity rule on I->E synapses based on Vogels et al. (2011).
 #
-# All excitatory neurons share the same target rate `he` and are recurrently connected. 
-# Each excitatory neuron is paired to a single inhibitory neuron. 
+# All excitatory neurons share the same input `he` and are recurrently connected. 
+# Each excitatory neuron is paired to a single inhibitory neuron.
+# All inhibitory neurons share the same input `hi` and are not connected with each other.
 #
 # For every combination of (theta, gamma) in the grid below, the code runs `n_trials`
 # independent repetitions (different random seeds), and saves the results 
