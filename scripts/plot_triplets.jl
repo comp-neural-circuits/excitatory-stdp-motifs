@@ -1,3 +1,11 @@
+# ==============================================================================
+# This code is used in the manuscript: 
+# 'Heterogeneous plasticity rules generate diverse structures in recurrent networks'
+# authors: Claudia Cusseddu, Dylan Festa, Christoph Miehl, Julijana Gjorgjieva
+# affiliation: Technical University of Munich, Germany 
+# contact: claudia.cusseddu@tum.de
+# biorxiv preprint: https://doi.org/10.64898/2026.10.26.760407 (2026)
+# =============================================================================
 using DrWatson
 @quickactivate
 using JLD2
@@ -21,7 +29,7 @@ using XLSX
 rule = 'H'  # 'H', 'A', or 'S'
 const NE = 3          # number of excitatory neurons (must match the simulation script)
 const W_THRESH = 0.12  # threshold above which a synapse is considered "connected"
-const WMAX = 0.5      # weight scale used for motif classification
+const WMAX = 0.5      # E->E upper weight bound (must match `w_max_ee` in sim_triplets.jl)
 
 # ------------------------------------------------------------------------------
 # Motif class colors and labels (for the average-color heatmap)
@@ -57,16 +65,16 @@ end
 # MOTIF CLASSIFICATION
 # ==============================================================================
 """
-    motif_distribution(W, wmax, w_thresh) -> (motif_idx, class_id)
+    motif_distribution(W, wmax, w_thresh) -> Vector{Int}
 
-Classify a 3x3 connectivity matrix `W` into one of 16 canonical 3-node motifs
-(`motif_idx`), and map it to one of 8 broader classes (`class_id`). Returns
-`(nothing, missing)` if no motif matches (should not normally happen).
+Count the occurrences of each of the 16 canonical 3-node motifs in the
+thresholded connectivity matrix `W` (entries > `w_thresh` are considered
+connected). Returns a vector of 16 counts; for a 3x3 matrix exactly one
+entry equals 1. (`wmax` is not used here; it is kept for a uniform signature.)
 Based on the method of the following article:
 S. Itzkovitz, R. Milo, N. Kashtan, G. Ziv, and U. Alon 
 "Subgraphs in random networks", Phys Review E 68, 026127 (2003)
 https://journals.aps.org/pre/pdf/10.1103/PhysRevE.68.026127
-
 """
 function motif_distribution(W::AbstractMatrix{<:Real}, wmax::Real, w_thresh::Real)
     N = size(W, 1)
@@ -105,6 +113,15 @@ function motif_distribution(W::AbstractMatrix{<:Real}, wmax::Real, w_thresh::Rea
     return motif_counts
 end
 
+"""
+    classify_motif_3node(W, wmax, w_thresh) -> (motif_idx, class_id)
+
+Classify a 3x3 connectivity matrix `W` into one of the 16 canonical 3-node
+motifs (`motif_idx`, see `motif_distribution`) and map it to one of the 8
+broader classes (`class_id`, see `MOTIF_LABELS`). Motif 16 is split into
+class 6 (all off-diagonal weights >= `wmax`) and class 7 (within bounds).
+Returns `(nothing, missing)` if no motif matches (should not normally happen).
+"""
 function classify_motif_3node(W::AbstractMatrix{<:Real}, wmax::Real, w_thresh::Real)
     N = size(W, 1)
     # warning that the size must be 3x3 (because we find the motif index whose count is 1)
