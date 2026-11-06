@@ -191,7 +191,7 @@ function mysim(cnt::Int64, total_spikes::Int64, Δt_rates::Float64, theta_val::F
     rec_spikes_ei = H.RecFullTrain(n_spikes + 10, 2)   # "2" = number of populations (E and I)
 
     Δt_wrec = 250.0       # weight-recording interval (s)
-    Tend_wrec = 10000.0   # expected simulation duration (s) used to size the weight recorder
+    Tend_wrec = 50000.0   # expected simulation duration (s) used to size the weight recorder
     # (this is just a guess for pre-allocation purposes; actual runtime is determined by 'n_spikes')
 
     rec_wee = H.RecTheseWeights(connection_ee.weights, Δt_wrec, Tend_wrec)
