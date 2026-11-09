@@ -143,7 +143,7 @@ function classify_motif_3node(W::AbstractMatrix{<:Real}, wmax::Real, w_thresh::R
         5
     elseif motif_idx == 16
         off_diag_W = [W[i, j] for i in 1:N, j in 1:N if i != j]
-        all(off_diag_W .>= wmax) ? 6 : 7
+        all(off_diag_W .>= 0.99 * wmax) ? 6 : 7
     elseif motif_idx in (7, 8)
         8
     else
